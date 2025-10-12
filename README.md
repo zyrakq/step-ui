@@ -39,7 +39,7 @@ cd step-ui
 ### 2. Configure Environment
 
 ```bash
-cp .env.example .env
+cp example.env .env
 ```
 
 Edit `.env` with your Step-CA configuration:

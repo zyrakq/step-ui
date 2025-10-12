@@ -25,7 +25,7 @@ mkdir -p data
 # Copy environment file if it doesn't exist
 if [ ! -f .env ]; then
     echo "📝 Creating .env file..."
-    cp .env.example .env
+    cp example.env .env
     echo "✅ Created .env file. Please edit it with your Step-CA configuration."
 else
     echo "✅ .env file already exists."

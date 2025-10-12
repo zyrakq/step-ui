@@ -24,7 +24,7 @@ if not exist data mkdir data
 REM Copy environment file if it doesn't exist
 if not exist .env (
     echo 📝 Creating .env file...
-    copy .env.example .env
+    copy example.env .env
     echo ✅ Created .env file. Please edit it with your Step-CA configuration.
 ) else (
     echo ✅ .env file already exists.
