@@ -17,7 +17,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
+# Tidy modules and build
+RUN go mod tidy
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main ./cmd
 
 # Final stage
