@@ -11,9 +11,9 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-docker-compose --version >nul 2>&1
+docker compose version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ❌ Docker Compose is not installed. Please install Docker Compose first.
+    echo ❌ Docker Compose is not available. Please ensure Docker Desktop is running.
     exit /b 1
 )
 
@@ -42,14 +42,14 @@ if "%PROVISIONER_PASSWORD%"=="" (
 
 REM Build and start services
 echo 🔨 Building and starting services...
-docker-compose up -d --build
+docker compose up -d --build
 
 echo.
 echo 🎉 Setup complete!
 echo.
 echo 📋 Next steps:
 echo 1. Edit .env file with your Step-CA configuration
-echo 2. Restart services: docker-compose restart
+echo 2. Restart services: docker compose restart
 echo.
 echo 🌐 Access the application:
 echo    Frontend: http://localhost:3000

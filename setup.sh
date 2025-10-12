@@ -13,8 +13,9 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
+# Check if docker compose is available
+if ! docker compose version &> /dev/null; then
+    echo "❌ Docker Compose is not available. Please ensure Docker Desktop is running and WSL integration is enabled."
     exit 1
 fi
 
@@ -31,6 +32,12 @@ else
     echo "✅ .env file already exists."
 fi
 
+# Load environment variables from .env file
+if [ -f .env ]; then
+    echo "📄 Loading environment variables from .env file..."
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Check environment configuration
 echo "🔐 Checking configuration..."
 if [ -z "$CA_URL" ]; then
@@ -43,14 +50,14 @@ fi
 
 # Build and start services
 echo "🔨 Building and starting services..."
-docker-compose up -d --build
+docker compose up -d --build
 
 echo ""
 echo "🎉 Setup complete!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit .env file with your Step-CA configuration"
-echo "2. Restart services: docker-compose restart"
+echo "2. Restart services: docker compose restart"
 echo ""
 echo "🌐 Access the application:"
 echo "   Frontend: http://localhost:3000"

@@ -57,7 +57,7 @@ The root CA certificate will be automatically downloaded from your Step-CA insta
 ### 4. Start the Application
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 The application will be available at:
