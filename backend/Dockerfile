@@ -1,7 +1,12 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.21-bullseye AS builder
 
 # Install step CLI and build dependencies
-RUN apk add --no-cache curl gcc musl-dev sqlite-dev
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    sqlite3 \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
 RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /usr/local/bin
 
 # Set working directory
@@ -22,14 +27,18 @@ RUN go mod tidy
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main ./cmd
 
 # Final stage
-FROM alpine:latest
+FROM debian:bullseye-slim
 
 # Install step CLI and openssl
-RUN apk add --no-cache curl openssl
+RUN apt-get update && apt-get install -y \
+    curl \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /usr/local/bin
 
 # Create app user
-RUN adduser -D -s /bin/sh appuser
+RUN useradd -m -s /bin/bash appuser
 
 # Set working directory
 WORKDIR /app
