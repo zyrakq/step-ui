@@ -344,67 +344,56 @@ func (s *StepClient) addFileToZip(zipWriter *zip.Writer, filename string, data [
 }
 
 func (s *StepClient) generateReadme(format, pfxPassword string) string {
-	readme := `# Certificate Installation Instructions
-
-## Files in this bundle:
-- cert.pem: Your certificate
-- chain.pem: Certificate chain (intermediate CAs)
-- fullchain.pem: Certificate + chain (use this for most applications)
-- privkey.pem: Private key (keep this secure!)
-`
+	readme := "# Certificate Installation Instructions\n\n"
+	readme += "## Files in this bundle:\n"
+	readme += "- cert.pem: Your certificate\n"
+	readme += "- chain.pem: Certificate chain (intermediate CAs)\n"
+	readme += "- fullchain.pem: Certificate + chain (use this for most applications)\n"
+	readme += "- privkey.pem: Private key (keep this secure!)\n"
 
 	if format == "pfx" {
-		readme += `- cert.p12: PFX/PKCS#12 bundle (password: ` + pfxPassword + `)
-`
+		readme += "- cert.p12: PFX/PKCS#12 bundle (password: " + pfxPassword + ")\n"
 	}
 
-	readme += `
-## Installation Instructions
+	readme += "\n## Installation Instructions\n\n"
+	readme += "### Linux/Ubuntu (Nginx, Apache, etc.)\n"
+	readme += "```bash\n"
+	readme += "# Copy files to appropriate locations\n"
+	readme += "sudo cp fullchain.pem /etc/ssl/certs/your-domain.crt\n"
+	readme += "sudo cp privkey.pem /etc/ssl/private/your-domain.key\n\n"
+	readme += "# For Nginx, update your server block:\n"
+	readme += "# ssl_certificate /etc/ssl/certs/your-domain.crt;\n"
+	readme += "# ssl_certificate_key /etc/ssl/private/your-domain.key;\n\n"
+	readme += "# Reload nginx\n"
+	readme += "sudo nginx -s reload\n"
+	readme += "```\n\n"
 
-### Linux/Ubuntu (Nginx, Apache, etc.)
-\`\`\`bash
-# Copy files to appropriate locations
-sudo cp fullchain.pem /etc/ssl/certs/your-domain.crt
-sudo cp privkey.pem /etc/ssl/private/your-domain.key
+	readme += "### Windows (IIS)\n"
+	readme += "1. Import cert.p12 into Certificate Store\n"
+	readme += "2. Use IIS Manager to bind the certificate to your site\n\n"
 
-# For Nginx, update your server block:
-# ssl_certificate /etc/ssl/certs/your-domain.crt;
-# ssl_certificate_key /etc/ssl/private/your-domain.key;
+	readme += "### Trust the CA Root\n"
+	readme += "To trust this CA on client systems:\n\n"
+	readme += "**Linux/Ubuntu:**\n"
+	readme += "```bash\n"
+	readme += "sudo cp chain.pem /usr/local/share/ca-certificates/my-ca.crt\n"
+	readme += "sudo update-ca-certificates\n"
+	readme += "```\n\n"
 
-# Reload nginx
-sudo nginx -s reload
-\`\`\`
+	readme += "**Windows PowerShell:**\n"
+	readme += "```powershell\n"
+	readme += "Import-Certificate -FilePath chain.pem -CertStoreLocation Cert:\\LocalMachine\\Root\n"
+	readme += "```\n\n"
 
-### Windows (IIS)
-1. Import cert.p12 into Certificate Store
-2. Use IIS Manager to bind the certificate to your site
-
-### Trust the CA Root
-To trust this CA on client systems:
-
-**Linux/Ubuntu:**
-\`\`\`bash
-sudo cp chain.pem /usr/local/share/ca-certificates/my-ca.crt
-sudo update-ca-certificates
-\`\`\`
-
-**Windows PowerShell:**
-\`\`\`powershell
-Import-Certificate -FilePath chain.pem -CertStoreLocation Cert:\LocalMachine\Root
-\`\`\`
-
-## Verification
-\`\`\`bash
-# Verify certificate chain
-openssl verify -CAfile chain.pem cert.pem
-
-# Check certificate details
-openssl x509 -in cert.pem -text -noout
-
-# Test SSL connection
-openssl s_client -connect your-domain:443 -showcerts
-\`\`\`
-`
+	readme += "## Verification\n"
+	readme += "```bash\n"
+	readme += "# Verify certificate chain\n"
+	readme += "openssl verify -CAfile chain.pem cert.pem\n\n"
+	readme += "# Check certificate details\n"
+	readme += "openssl x509 -in cert.pem -text -noout\n\n"
+	readme += "# Test SSL connection\n"
+	readme += "openssl s_client -connect your-domain:443 -showcerts\n"
+	readme += "```\n"
 
 	return readme
 }
