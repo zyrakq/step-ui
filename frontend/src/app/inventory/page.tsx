@@ -83,9 +83,9 @@ export default function Inventory() {
     }
   }
 
-  const filteredCertificates = certificates.filter(cert => {
+  const filteredCertificates = certificates.filter((cert: Certificate) => {
     const matchesSearch = cert.cn.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cert.sans.some(san => san.toLowerCase().includes(searchTerm.toLowerCase()))
+      cert.sans.some((san: string) => san.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesStatus = !statusFilter || cert.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -199,7 +199,7 @@ export default function Inventory() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCertificates.map((cert) => (
+                {filteredCertificates.map((cert: Certificate) => (
                   <tr key={cert.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>

@@ -28,17 +28,17 @@ export default function Dashboard() {
 
       // Calculate stats
       const now = new Date()
-      const expiring = certs.filter(cert => {
+      const expiring = certs.filter((cert: Certificate) => {
         const days = getDaysUntilExpiry(cert.not_after)
         return days > 0 && days <= 30
       }).length
 
-      const expired = certs.filter(cert => {
+      const expired = certs.filter((cert: Certificate) => {
         const days = getDaysUntilExpiry(cert.not_after)
         return days <= 0
       }).length
 
-      const active = certs.filter(cert => cert.status === 'active').length
+      const active = certs.filter((cert: Certificate) => cert.status === 'active').length
 
       setStats({
         total: certs.length,
@@ -199,7 +199,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {certificates.slice(0, 10).map((cert) => (
+                {certificates.slice(0, 10).map((cert: Certificate) => (
                   <tr key={cert.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
