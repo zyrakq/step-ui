@@ -13,8 +13,6 @@ services:
       - PORT=8080
     volumes:
       - ./data:/app/data
-    depends_on:
-      - frontend
     restart: unless-stopped
 
   frontend:
