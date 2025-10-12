@@ -8,7 +8,8 @@ RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux
 WORKDIR /app
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY go.mod ./
+COPY go.sum* ./
 
 # Download dependencies
 RUN go mod download
