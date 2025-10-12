@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -204,10 +203,10 @@ func (s *StepClient) CreatePFX(certPEM, keyPEM, password string) ([]byte, error)
 	passwordPath := filepath.Join(tempDir, "password.txt")
 
 	// Write certificate and key files
-	if err := os.WriteFile(certPath, certPEM, 0644); err != nil {
+	if err := os.WriteFile(certPath, []byte(certPEM), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write cert file: %w", err)
 	}
-	if err := os.WriteFile(keyPath, keyPEM, 0644); err != nil {
+	if err := os.WriteFile(keyPath, []byte(keyPEM), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write key file: %w", err)
 	}
 	if err := os.WriteFile(passwordPath, []byte(password), 0644); err != nil {
@@ -312,7 +311,7 @@ func (s *StepClient) CreateDownloadBundle(bundle *CertBundle, format string, pfx
 
 	// Add PFX if requested
 	if format == "pfx" && len(bundle.KeyPEM) > 0 {
-		pfxData, err := s.CreatePFX(bundle.CertPEM, bundle.KeyPEM, pfxPassword)
+		pfxData, err := s.CreatePFX(string(bundle.CertPEM), string(bundle.KeyPEM), pfxPassword)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create PFX: %w", err)
 		}

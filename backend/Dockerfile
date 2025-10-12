@@ -1,7 +1,7 @@
 FROM golang:1.21-alpine AS builder
 
 # Install step CLI and build dependencies
-RUN apk add --no-cache curl gcc musl-dev
+RUN apk add --no-cache curl gcc musl-dev sqlite-dev
 RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /usr/local/bin
 
 # Set working directory
