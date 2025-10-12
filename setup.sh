@@ -5,6 +5,7 @@
 set -e
 
 echo "🚀 Setting up Step-CA Web UI..."
+echo "📦 Repository: https://github.com/marcin-kruszynski/step-ui.git"
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
@@ -20,7 +21,6 @@ fi
 # Create necessary directories
 echo "📁 Creating directories..."
 mkdir -p data
-mkdir -p secrets
 
 # Copy environment file if it doesn't exist
 if [ ! -f .env ]; then
@@ -31,14 +31,14 @@ else
     echo "✅ .env file already exists."
 fi
 
-# Check if secrets directory has required files
-echo "🔐 Checking secrets..."
-if [ ! -f secrets/root_ca.crt ]; then
-    echo "⚠️  secrets/root_ca.crt not found. Please add your root CA certificate."
+# Check environment configuration
+echo "🔐 Checking configuration..."
+if [ -z "$CA_URL" ]; then
+    echo "⚠️  CA_URL not set in .env file. Please configure your Step-CA URL."
 fi
 
-if [ ! -f secrets/provisioner_pass.txt ]; then
-    echo "⚠️  secrets/provisioner_pass.txt not found. Please add your provisioner password."
+if [ -z "$PROVISIONER_PASSWORD" ]; then
+    echo "⚠️  PROVISIONER_PASSWORD not set in .env file. Please configure your provisioner password."
 fi
 
 # Build and start services
@@ -50,9 +50,7 @@ echo "🎉 Setup complete!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit .env file with your Step-CA configuration"
-echo "2. Add your root CA certificate to secrets/root_ca.crt"
-echo "3. Add your provisioner password to secrets/provisioner_pass.txt"
-echo "4. Restart services: docker-compose restart"
+echo "2. Restart services: docker-compose restart"
 echo ""
 echo "🌐 Access the application:"
 echo "   Frontend: http://localhost:3000"

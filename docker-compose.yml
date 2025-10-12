@@ -7,14 +7,12 @@ services:
       - "8080:8080"
     environment:
       - CA_URL=${CA_URL}
-      - CA_ROOT=/secrets/root_ca.crt
       - PROVISIONER_NAME=${PROVISIONER_NAME}
-      - PROVISIONER_PASSWORD_FILE=/secrets/provisioner_pass.txt
+      - PROVISIONER_PASSWORD=${PROVISIONER_PASSWORD}
       - DB_PATH=/app/data/certs.db
       - PORT=8080
     volumes:
       - ./data:/app/data
-      - ./secrets:/secrets:ro
     depends_on:
       - frontend
     restart: unless-stopped

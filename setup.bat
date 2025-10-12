@@ -2,6 +2,7 @@
 REM Step-CA Web UI Setup Script for Windows
 
 echo 🚀 Setting up Step-CA Web UI...
+echo 📦 Repository: https://github.com/marcin-kruszynski/step-ui.git
 
 REM Check if Docker is installed
 docker --version >nul 2>&1
@@ -19,7 +20,6 @@ if %errorlevel% neq 0 (
 REM Create necessary directories
 echo 📁 Creating directories...
 if not exist data mkdir data
-if not exist secrets mkdir secrets
 
 REM Copy environment file if it doesn't exist
 if not exist .env (
@@ -30,14 +30,14 @@ if not exist .env (
     echo ✅ .env file already exists.
 )
 
-REM Check if secrets directory has required files
-echo 🔐 Checking secrets...
-if not exist secrets\root_ca.crt (
-    echo ⚠️  secrets\root_ca.crt not found. Please add your root CA certificate.
+REM Check environment configuration
+echo 🔐 Checking configuration...
+if "%CA_URL%"=="" (
+    echo ⚠️  CA_URL not set in .env file. Please configure your Step-CA URL.
 )
 
-if not exist secrets\provisioner_pass.txt (
-    echo ⚠️  secrets\provisioner_pass.txt not found. Please add your provisioner password.
+if "%PROVISIONER_PASSWORD%"=="" (
+    echo ⚠️  PROVISIONER_PASSWORD not set in .env file. Please configure your provisioner password.
 )
 
 REM Build and start services
@@ -49,9 +49,7 @@ echo 🎉 Setup complete!
 echo.
 echo 📋 Next steps:
 echo 1. Edit .env file with your Step-CA configuration
-echo 2. Add your root CA certificate to secrets\root_ca.crt
-echo 3. Add your provisioner password to secrets\provisioner_pass.txt
-echo 4. Restart services: docker-compose restart
+echo 2. Restart services: docker-compose restart
 echo.
 echo 🌐 Access the application:
 echo    Frontend: http://localhost:3000

@@ -24,18 +24,16 @@ type CertBundle struct {
 }
 
 type StepClient struct {
-	CAURL           string
-	CARoot          string
-	ProvisionerName string
-	PasswordFile    string
+	CAURL             string
+	ProvisionerName   string
+	ProvisionerPassword string
 }
 
-func NewStepClient(caURL, caRoot, provisionerName, passwordFile string) *StepClient {
+func NewStepClient(caURL, provisionerName, provisionerPassword string) *StepClient {
 	return &StepClient{
-		CAURL:           caURL,
-		CARoot:          caRoot,
-		ProvisionerName: provisionerName,
-		PasswordFile:    passwordFile,
+		CAURL:             caURL,
+		ProvisionerName:   provisionerName,
+		ProvisionerPassword: provisionerPassword,
 	}
 }
 
@@ -57,9 +55,8 @@ func (s *StepClient) IssueCertificate(cn string, sans []string, notAfterDays int
 		certPath,
 		keyPath,
 		"--ca-url", s.CAURL,
-		"--root", s.CARoot,
 		"--provisioner", s.ProvisionerName,
-		"--password-file", s.PasswordFile,
+		"--password", s.ProvisionerPassword,
 		"--not-after", fmt.Sprintf("%dd", notAfterDays),
 	}
 
@@ -133,9 +130,8 @@ func (s *StepClient) SignCSR(csrPEM string, notAfterDays int) (*CertBundle, erro
 		csrPath,
 		certPath,
 		"--ca-url", s.CAURL,
-		"--root", s.CARoot,
 		"--provisioner", s.ProvisionerName,
-		"--password-file", s.PasswordFile,
+		"--password", s.ProvisionerPassword,
 		"--not-after", fmt.Sprintf("%dd", notAfterDays),
 	}
 
@@ -181,9 +177,8 @@ func (s *StepClient) RevokeCertificate(serial string) error {
 		"ca", "revoke",
 		serial,
 		"--ca-url", s.CAURL,
-		"--root", s.CARoot,
 		"--provisioner", s.ProvisionerName,
-		"--password-file", s.PasswordFile,
+		"--password", s.ProvisionerPassword,
 	}
 
 	cmd := exec.Command("step", args...)
@@ -249,7 +244,6 @@ func (s *StepClient) getChain(certPath string) ([]byte, error) {
 		"certificate", "chain",
 		certPath,
 		"--ca-url", s.CAURL,
-		"--root", s.CARoot,
 	}
 
 	cmd := exec.Command("step", args...)

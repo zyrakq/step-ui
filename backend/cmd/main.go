@@ -31,9 +31,8 @@ func main() {
 	// Initialize step client
 	stepClient := step.NewStepClient(
 		cfg.CAURL,
-		cfg.CARoot,
 		cfg.ProvisionerName,
-		cfg.ProvisionerPasswordFile,
+		cfg.ProvisionerPassword,
 	)
 
 	// Initialize handlers

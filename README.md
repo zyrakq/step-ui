@@ -2,6 +2,8 @@
 
 A modern web interface for managing Step-CA certificates with a clean, intuitive design.
 
+**Repository**: https://github.com/marcin-kruszynski/step-ui.git
+
 ## Features
 
 - **Issue Certificates**: Create new certificates with server-generated keypairs
@@ -30,8 +32,8 @@ A modern web interface for managing Step-CA certificates with a clean, intuitive
 ### 1. Clone and Setup
 
 ```bash
-git clone <repository-url>
-cd step-ca-webui
+git clone https://github.com/marcin-kruszynski/step-ui.git
+cd step-ui
 ```
 
 ### 2. Configure Environment
@@ -44,20 +46,13 @@ Edit `.env` with your Step-CA configuration:
 
 ```env
 CA_URL=https://ca.home:9000
-CA_ROOT=/path/to/root_ca.crt
 PROVISIONER_NAME=ui-admin
-PROVISIONER_PASSWORD_FILE=/path/to/provisioner_pass.txt
+PROVISIONER_PASSWORD=your-provisioner-password-here
 ```
 
-### 3. Prepare Secrets
+### 3. Configure Environment
 
-Create a `secrets` directory and place your CA files:
-
-```bash
-mkdir -p secrets
-cp /path/to/your/root_ca.crt secrets/
-echo "your-provisioner-password" > secrets/provisioner_pass.txt
-```
+The root CA certificate will be automatically downloaded from your Step-CA instance at `${CA_URL}/roots.pem`. No manual setup required!
 
 ### 4. Start the Application
 
