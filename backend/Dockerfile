@@ -7,7 +7,9 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
-RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /tmp && \
+    cp /tmp/step_linux_amd64/bin/step /usr/local/bin/step && \
+    chmod +x /usr/local/bin/step
 
 # Set working directory
 WORKDIR /app
@@ -35,7 +37,9 @@ RUN apt-get update && apt-get install -y \
     openssl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+RUN curl -L https://github.com/smallstep/cli/releases/latest/download/step_linux_amd64.tar.gz | tar xz -C /tmp && \
+    cp /tmp/step_linux_amd64/bin/step /usr/local/bin/step && \
+    chmod +x /usr/local/bin/step
 
 # Create app user
 RUN useradd -m -s /bin/bash appuser

@@ -28,17 +28,17 @@ export default function Dashboard() {
 
       // Calculate stats
       const now = new Date()
-      const expiring = certs.filter(cert => {
+      const expiring = certs.filter((cert: Certificate) => {
         const days = getDaysUntilExpiry(cert.not_after)
         return days > 0 && days <= 30
       }).length
 
-      const expired = certs.filter(cert => {
+      const expired = certs.filter((cert: Certificate) => {
         const days = getDaysUntilExpiry(cert.not_after)
         return days <= 0
       }).length
 
-      const active = certs.filter(cert => cert.status === 'active').length
+      const active = certs.filter((cert: Certificate) => cert.status === 'active').length
 
       setStats({
         total: certs.length,
