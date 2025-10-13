@@ -33,7 +33,7 @@ export default function Settings() {
 
   const downloadRootCA = () => {
     // This would typically fetch the root CA certificate
-    toast.info('Root CA download would be implemented here')
+    toast('Root CA download would be implemented here')
   }
 
   if (loading) {

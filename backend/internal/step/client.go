@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/pem"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,20 +24,25 @@ type CertBundle struct {
 }
 
 type StepClient struct {
-	CAURL             string
-	ProvisionerName   string
+	CAURL               string
+	CARootFingerprint   string
+	ProvisionerName     string
 	ProvisionerPassword string
 }
 
-func NewStepClient(caURL, provisionerName, provisionerPassword string) *StepClient {
+func NewStepClient(caURL, caRootFingerprint, provisionerName, provisionerPassword string) *StepClient {
 	return &StepClient{
-		CAURL:             caURL,
-		ProvisionerName:   provisionerName,
+		CAURL:               caURL,
+		CARootFingerprint:   caRootFingerprint,
+		ProvisionerName:     provisionerName,
 		ProvisionerPassword: provisionerPassword,
 	}
 }
 
 func (s *StepClient) IssueCertificate(cn string, sans []string, notAfterDays int) (*CertBundle, error) {
+	log.Printf("DEBUG: IssueCertificate called with cn=%s, sans=%v, notAfterDays=%d\n", cn, sans, notAfterDays)
+	log.Printf("DEBUG: StepClient.CARootFingerprint='%s'\n", s.CARootFingerprint)
+	
 	// Create temporary directory for certificate files
 	tempDir, err := os.MkdirTemp("", "step-cert-*")
 	if err != nil {
@@ -46,26 +52,93 @@ func (s *StepClient) IssueCertificate(cn string, sans []string, notAfterDays int
 
 	certPath := filepath.Join(tempDir, "cert.crt")
 	keyPath := filepath.Join(tempDir, "cert.key")
+	passwordFile := filepath.Join(tempDir, "password.txt")
+	rootPath := filepath.Join(tempDir, "root.crt")
 
-	// Build step command
-	args := []string{
+	// Write password to file
+	if err := os.WriteFile(passwordFile, []byte(s.ProvisionerPassword), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write password file: %w", err)
+	}
+
+	// Download root certificate
+	rootArgs := []string{
+		"ca", "root",
+		rootPath,
+		"--ca-url", s.CAURL,
+	}
+	if s.CARootFingerprint != "" {
+		rootArgs = append(rootArgs, "--fingerprint", s.CARootFingerprint)
+	}
+	// DEBUG: log the command and fingerprint
+	log.Printf("DEBUG [IssueCertificate]: Executing root command: step %v\n", rootArgs)
+	log.Printf("DEBUG [IssueCertificate]: CARootFingerprint value: '%s'\n", s.CARootFingerprint)
+	rootCmd := exec.Command("step", rootArgs...)
+	rootOutput, err := rootCmd.CombinedOutput()
+	if err != nil {
+		log.Printf("DEBUG [IssueCertificate]: Root command FAILED: %s\n", string(rootOutput))
+		return nil, fmt.Errorf("step root command failed: %s, error: %w", string(rootOutput), err)
+	}
+	log.Printf("DEBUG [IssueCertificate]: Root command succeeded\n")
+
+	// First, generate a token
+	// Note: --not-after for token is token validity (default 5m), not certificate validity
+	tokenArgs := []string{
+		"ca", "token",
+		cn,
+		"--ca-url", s.CAURL,
+		"--root", rootPath,
+		"--provisioner", s.ProvisionerName,
+		"--provisioner-password-file", passwordFile,
+	}
+
+	// Add SANs to token command if provided
+	for _, san := range sans {
+		tokenArgs = append(tokenArgs, "--san", san)
+	}
+
+	// Execute token command
+	tokenCmd := exec.Command("step", tokenArgs...)
+	// DEBUG: log the command being executed
+	log.Printf("DEBUG: Executing token command: step %v\n", tokenArgs)
+	tokenOutput, err := tokenCmd.CombinedOutput()
+	if err != nil {
+		log.Printf("DEBUG: Token command FAILED: %s\n", string(tokenOutput))
+		return nil, fmt.Errorf("step token command failed: %s, error: %w", string(tokenOutput), err)
+	}
+	log.Printf("DEBUG: Token command succeeded, output length: %d\n", len(tokenOutput))
+
+	// Extract JWT token from output (it's the line starting with "ey")
+	// The step CLI outputs colored/formatted text before the actual token
+	token := ""
+	for _, line := range strings.Split(string(tokenOutput), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "ey") {
+			token = trimmed
+			break
+		}
+	}
+	
+	if token == "" {
+		log.Printf("DEBUG: Could not extract token from output: %s\n", string(tokenOutput))
+		return nil, fmt.Errorf("failed to extract JWT token from step ca token output")
+	}
+	
+	log.Printf("DEBUG: Extracted token (first 20 chars): %s...\n", token[:min(20, len(token))])
+
+	// Now use the token to issue certificate
+	certArgs := []string{
 		"ca", "certificate",
 		cn,
 		certPath,
 		keyPath,
+		"--token", token,
 		"--ca-url", s.CAURL,
-		"--provisioner", s.ProvisionerName,
-		"--password", s.ProvisionerPassword,
-		"--not-after", fmt.Sprintf("%dd", notAfterDays),
+		"--root", rootPath,
+		"--not-after", fmt.Sprintf("%dh", notAfterDays*24),
 	}
 
-	// Add SANs if provided
-	for _, san := range sans {
-		args = append(args, "--san", san)
-	}
-
-	// Execute step command
-	cmd := exec.Command("step", args...)
+	// Execute certificate command
+	cmd := exec.Command("step", certArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("step command failed: %s, error: %w", string(output), err)
@@ -117,21 +190,64 @@ func (s *StepClient) SignCSR(csrPEM string, notAfterDays int) (*CertBundle, erro
 
 	csrPath := filepath.Join(tempDir, "csr.pem")
 	certPath := filepath.Join(tempDir, "cert.crt")
+	passwordFile := filepath.Join(tempDir, "password.txt")
+	rootPath := filepath.Join(tempDir, "root.crt")
 
 	// Write CSR to file
 	if err := os.WriteFile(csrPath, []byte(csrPEM), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write CSR file: %w", err)
 	}
 
-	// Build step command
+	// Write password to file
+	if err := os.WriteFile(passwordFile, []byte(s.ProvisionerPassword), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write password file: %w", err)
+	}
+
+	// Download root certificate
+	rootArgs := []string{
+		"ca", "root",
+		rootPath,
+		"--ca-url", s.CAURL,
+	}
+	if s.CARootFingerprint != "" {
+		rootArgs = append(rootArgs, "--fingerprint", s.CARootFingerprint)
+	}
+	rootCmd := exec.Command("step", rootArgs...)
+	rootOutput, err := rootCmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("step root command failed: %s, error: %w", string(rootOutput), err)
+	}
+
+	// First, generate a token (we need to extract CN from CSR)
+	// For now, use a generic subject - this could be improved by parsing the CSR
+	// Note: --not-after for token is token validity (default 5m), not certificate validity
+	tokenArgs := []string{
+		"ca", "token",
+		"csr-signing", // Generic subject for CSR signing
+		"--ca-url", s.CAURL,
+		"--root", rootPath,
+		"--provisioner", s.ProvisionerName,
+		"--provisioner-password-file", passwordFile,
+	}
+
+	// Execute token command
+	tokenCmd := exec.Command("step", tokenArgs...)
+	tokenOutput, err := tokenCmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("step token command failed: %s, error: %w", string(tokenOutput), err)
+	}
+
+	token := strings.TrimSpace(string(tokenOutput))
+
+	// Now use the token to sign CSR
 	args := []string{
 		"ca", "sign",
 		csrPath,
 		certPath,
+		"--token", token,
 		"--ca-url", s.CAURL,
-		"--provisioner", s.ProvisionerName,
-		"--password", s.ProvisionerPassword,
-		"--not-after", fmt.Sprintf("%dd", notAfterDays),
+		"--root", rootPath,
+		"--not-after", fmt.Sprintf("%dh", notAfterDays*24),
 	}
 
 	// Execute step command
@@ -239,19 +355,40 @@ func (s *StepClient) CreatePFX(certPEM, keyPEM, password string) ([]byte, error)
 }
 
 func (s *StepClient) getChain(certPath string) ([]byte, error) {
-	args := []string{
-		"certificate", "chain",
-		certPath,
+	// The step ca certificate command already provides the certificate
+	// We need to get the CA chain (intermediate + root)
+	// Download the root certificate using step ca root
+	
+	tempDir, err := os.MkdirTemp("", "step-chain-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	rootPath := filepath.Join(tempDir, "root.crt")
+
+	// Download root certificate
+	rootArgs := []string{
+		"ca", "root",
+		rootPath,
 		"--ca-url", s.CAURL,
 	}
-
-	cmd := exec.Command("step", args...)
-	output, err := cmd.CombinedOutput()
+	if s.CARootFingerprint != "" {
+		rootArgs = append(rootArgs, "--fingerprint", s.CARootFingerprint)
+	}
+	rootCmd := exec.Command("step", rootArgs...)
+	rootOutput, err := rootCmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("step chain command failed: %s, error: %w", string(output), err)
+		return nil, fmt.Errorf("step root command failed: %s, error: %w", string(rootOutput), err)
 	}
 
-	return output, nil
+	// Read the root certificate
+	chainPEM, err := os.ReadFile(rootPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read root certificate: %w", err)
+	}
+
+	return chainPEM, nil
 }
 
 func (s *StepClient) parseCertificate(certPEM []byte) (string, time.Time, error) {

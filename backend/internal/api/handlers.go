@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -64,9 +65,12 @@ func (h *Handlers) IssueCertificate(c *gin.Context) {
 		return
 	}
 
+	log.Printf("DEBUG [Handler]: IssueCertificate handler called with CN=%s\n", req.CN)
+	
 	// Generate certificate using step CLI
 	bundle, err := h.stepClient.IssueCertificate(req.CN, req.SANs, req.NotAfterDays)
 	if err != nil {
+		log.Printf("DEBUG [Handler]: IssueCertificate returned error: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to issue certificate: %v", err)})
 		return
 	}
@@ -381,7 +385,14 @@ func (h *Handlers) GetCASettings(c *gin.Context) {
 	c.JSON(http.StatusOK, settings)
 }
 
-// Health check endpoint
+// Health check endpoint  
 func (h *Handlers) Health(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
+	// NEW VERSION WITH ROOT FINGERPRINT SUPPORT
+	fmt.Println("=== HEALTH ENDPOINT HIT ===")
+	response := map[string]interface{}{
+		"status":    "healthy-NEW",
+		"timestamp": time.Now().Format(time.RFC3339),
+		"fingerprint_length": len(h.stepClient.CARootFingerprint),
+	}
+	c.JSON(http.StatusOK, response)
 }

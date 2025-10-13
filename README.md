@@ -1,152 +1,149 @@
 # Step-CA Web UI
 
-A modern web interface for managing Step-CA certificates with a clean, intuitive design.
-
-**Repository**: https://github.com/marcin-kruszynski/step-ui.git
+A modern web interface for managing certificates with Smallstep Step-CA.
 
 ## Features
 
-- **Issue Certificates**: Create new certificates with server-generated keypairs
-- **Sign CSRs**: Sign certificate signing requests from external systems
-- **Certificate Inventory**: View, search, and manage all certificates
-- **Renewal & Revocation**: Renew or revoke certificates as needed
-- **Download Bundles**: Get PEM or PFX certificate bundles with installation instructions
-- **Trust Management**: Easy instructions for installing CA root certificates
-- **No Authentication**: Simple setup for trusted networks (MVP)
+- Issue certificates with custom SANs
+- Sign CSRs
+- Certificate inventory management
+- Download certificates in various formats (PEM, PFX)
+- Audit logging
+- Modern, responsive UI
 
-## Architecture
+## Prerequisites
 
-- **Backend**: Go with Gin framework, calling step CLI as subprocess
-- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
-- **Database**: SQLite for certificate inventory and audit logs
-- **Containerization**: Docker Compose for easy deployment
+- Docker and Docker Compose
+- A running Step-CA instance
+- Step-CA provisioner credentials
+
+## Configuration
+
+### 1. Get the CA Root Fingerprint
+
+The CA root fingerprint is required for secure communication with Step-CA. You can obtain it in several ways:
+
+**Option A: From the Step-CA server directly**
+```bash
+# SSH into your Step-CA server and run:
+step certificate fingerprint $(step path)/certs/root_ca.crt
+```
+
+**Option B: From the Step-CA logs**
+When Step-CA starts, it prints the root fingerprint in the logs. Look for a line like:
+```
+Root fingerprint: 1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1e2f
+```
+
+**Option C: Using curl and openssl**
+```bash
+# Download the root certificate
+curl -sk https://your-ca-url:9000/root > /tmp/root_ca.crt
+
+# Calculate the fingerprint
+openssl x509 -in /tmp/root_ca.crt -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':'
+```
+
+### 2. Create Environment File
+
+Create a `.env` file in the project root with your Step-CA configuration:
+
+```bash
+# Step-CA Configuration
+CA_URL=https://ca.home:9000
+CA_ROOT_FINGERPRINT=your_root_fingerprint_here
+PROVISIONER_NAME=ui-admin
+PROVISIONER_PASSWORD=your_provisioner_password
+```
+
+**Important:** Replace the values with your actual Step-CA details:
+- `CA_URL`: Your Step-CA URL
+- `CA_ROOT_FINGERPRINT`: The fingerprint you obtained in step 1
+- `PROVISIONER_NAME`: Your provisioner name
+- `PROVISIONER_PASSWORD`: Your provisioner password
+
+### 3. Setup Step-CA Provisioner (if not already done)
+
+If you haven't created a provisioner for the UI yet, run this on your Step-CA server:
+
+```bash
+step ca provisioner add ui-admin --type=JWK --create
+```
+
+Save the password that's generated - you'll need it for the `PROVISIONER_PASSWORD` in your `.env` file.
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker and Docker Compose
-- Running Step-CA instance
-- JWK provisioner configured for the UI
-
-### 1. Clone and Setup
+1. Clone this repository
+2. Configure your `.env` file (see Configuration section above)
+3. Start the services:
 
 ```bash
-git clone https://github.com/marcin-kruszynski/step-ui.git
-cd step-ui
+./setup.sh
 ```
 
-### 2. Configure Environment
+Or manually:
 
 ```bash
-cp example.env .env
-```
-
-Edit `.env` with your Step-CA configuration:
-
-```env
-CA_URL=https://ca.home:9000
-PROVISIONER_NAME=ui-admin
-PROVISIONER_PASSWORD=your-provisioner-password-here
-```
-
-### 3. Configure Environment
-
-The root CA certificate will be automatically downloaded from your Step-CA instance at `${CA_URL}/roots.pem`. No manual setup required!
-
-### 4. Start the Application
-
-```bash
+docker compose build
 docker compose up -d
 ```
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8080
-
-## Step-CA Setup
-
-### 1. Create JWK Provisioner
-
-Add a JWK provisioner to your Step-CA configuration:
-
-```json
-{
-  "name": "ui-admin",
-  "type": "JWK",
-  "key": {
-    "use": "sig",
-    "kty": "EC",
-    "kid": "your-key-id",
-    "crv": "P-256",
-    "x": "your-x-coordinate",
-    "y": "your-y-coordinate"
-  },
-  "claims": {
-    "maxTLSCertDuration": "2160h",
-    "defaultTLSCertDuration": "720h"
-  }
-}
-```
-
-### 2. Generate Provisioner Password
-
-```bash
-step ca provisioner add ui-admin --type JWK --create
-```
+4. Access the web interface at `http://localhost:3000`
 
 ## Usage
 
-### Issue New Certificate
+### Issue a Certificate
 
-1. Navigate to the "Issue New Certificate" page
-2. Enter the Common Name (CN) and Subject Alternative Names (SANs)
-3. Select validity period and output format (PEM or PFX)
-4. Click "Issue Certificate" to generate and download
+1. Navigate to "Issue Certificate" in the navigation menu
+2. Enter the Common Name (CN) and any Subject Alternative Names (SANs)
+3. Set the validity period
+4. Choose the download format (PEM or PFX)
+5. Click "Issue Certificate"
+6. Download the certificate bundle
 
-### Sign CSR
+### Sign a CSR
 
-1. Go to the "Sign CSR" page
-2. Upload a CSR file or paste the PEM content
-3. Select validity period
-4. Click "Sign CSR" to get the signed certificate
+1. Navigate to "Sign CSR" in the navigation menu
+2. Paste your Certificate Signing Request (CSR) in PEM format
+3. Set the validity period
+4. Click "Sign CSR"
+5. Download the signed certificate
 
-### Manage Certificates
+### View Certificate Inventory
 
-1. View all certificates in the "Inventory" page
-2. Search and filter by status
-3. Renew or revoke certificates as needed
-4. Download certificate bundles
+1. Navigate to "Inventory" to see all issued certificates
+2. View certificate details, status, and expiration dates
+3. Filter by status (active, expired, expiring soon)
 
-### Install CA Trust
+## Troubleshooting
 
-1. Go to the "Settings" page
-2. Follow platform-specific instructions to install the root CA
-3. Test certificate trust with the provided commands
+### Error: 'step ca token' requires the '--root' flag
 
-## API Endpoints
+This error means the `CA_ROOT_FINGERPRINT` is missing or incorrect in your `.env` file. Follow the configuration steps above to obtain and set the correct fingerprint.
 
-The backend provides a REST API:
+### Error: connection refused
 
-- `POST /api/certs/issue` - Issue new certificate
-- `POST /api/certs/sign-csr` - Sign a CSR
-- `GET /api/certs` - List certificates
-- `GET /api/certs/:id` - Get specific certificate
-- `POST /api/certs/:id/renew` - Renew certificate
-- `POST /api/certs/:id/revoke` - Revoke certificate
-- `GET /api/settings/ca` - Get CA settings
+- Verify your Step-CA is running and accessible at the configured `CA_URL`
+- Check that the CA_URL is correct in your `.env` file
+- Ensure there are no firewall rules blocking access
+
+### Error: unauthorized
+
+- Verify your provisioner name and password are correct
+- Ensure the provisioner exists on your Step-CA server
+- Check the provisioner hasn't been disabled
 
 ## Development
 
-### Backend Development
+### Backend
 
 ```bash
 cd backend
-go mod download
-go run cmd/main.go
+go run ./cmd
 ```
 
-### Frontend Development
+### Frontend
 
 ```bash
 cd frontend
@@ -154,53 +151,25 @@ npm install
 npm run dev
 ```
 
-## Security Considerations
+## Architecture
 
-- **No Authentication**: This MVP has no authentication. Only use on trusted networks
-- **Private Keys**: Server-generated keys are not persisted after download
-- **CSR Flow**: For maximum security, use the CSR signing flow to keep private keys client-side
-- **Audit Logging**: All certificate operations are logged for audit purposes
+- **Frontend**: Next.js 14 with TypeScript, TailwindCSS
+- **Backend**: Go with Gin framework
+- **Database**: SQLite for certificate metadata and audit logs
+- **CA Integration**: Smallstep Step-CA via CLI
 
-## Troubleshooting
+## Security Notes
 
-### Common Issues
-
-1. **Step CLI not found**: Ensure step CLI is installed in the backend container
-2. **CA connection failed**: Verify CA_URL and network connectivity
-3. **Provisioner authentication**: Check provisioner name and password file
-4. **Certificate download**: Ensure browser allows file downloads
-
-### Logs
-
-```bash
-# View backend logs
-docker-compose logs backend
-
-# View frontend logs
-docker-compose logs frontend
-```
+- Keep your `.env` file secure and never commit it to version control
+- The provisioner password is sensitive - protect it appropriately
+- Consider using Docker secrets for production deployments
+- Enable TLS for the backend API in production
+- Implement proper authentication and authorization for production use
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Roadmap
-
-### Phase 2 Features
-
-- [ ] Authentication (OIDC/SSO)
-- [ ] Background expiry notifications
-- [ ] Auto-renewal
-- [ ] ACME wizard for wildcard certificates
-- [ ] Push to targets (NPM, nginx, etc.)
-- [ ] Multi-user roles and permissions
-- [ ] Certificate templates
-- [ ] Bulk operations
+Contributions are welcome! Please open an issue or submit a pull request.

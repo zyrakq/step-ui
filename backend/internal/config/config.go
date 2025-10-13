@@ -6,22 +6,24 @@ import (
 )
 
 type Config struct {
-	CAURL             string
-	ProvisionerName   string
+	CAURL               string
+	CARootFingerprint   string
+	ProvisionerName     string
 	ProvisionerPassword string
-	DBPath            string
-	Port              int
+	DBPath              string
+	Port                int
 }
 
 func Load() *Config {
 	port, _ := strconv.Atoi(getEnv("PORT", "8080"))
 	
 	return &Config{
-		CAURL:             getEnv("CA_URL", ""),
-		ProvisionerName:   getEnv("PROVISIONER_NAME", "ui-admin"),
+		CAURL:               getEnv("CA_URL", ""),
+		CARootFingerprint:   getEnv("CA_ROOT_FINGERPRINT", ""),
+		ProvisionerName:     getEnv("PROVISIONER_NAME", "ui-admin"),
 		ProvisionerPassword: getEnv("PROVISIONER_PASSWORD", ""),
-		DBPath:            getEnv("DB_PATH", "./data/certs.db"),
-		Port:              port,
+		DBPath:              getEnv("DB_PATH", "./data/certs.db"),
+		Port:                port,
 	}
 }
 
